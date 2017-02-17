@@ -1,8 +1,11 @@
 ---
 title: "HW3"
-author: "Vicki Hertzberg"
-date: "February 8, 2017"
-output: html_document
+author: "Valerie Mac"
+date: "February 16, 2017"
+output:
+  word_document: default
+  html_document: default
+  github_document: default
 ---
 
 
@@ -22,3 +25,562 @@ Exploration (summary statistics (the m's), univariate graphs, multivariate graph
 Regression (Models explored, diagnostics completed, final model choice, justification)
 
 Please include a concluding paragraph (or two) about the implications of your findings.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+ww <- read.table("White_wines.csv",
+                 header = TRUE,
+                 sep = ",")
+```
+See what is in the data set
+```{r}
+# see what is in the ww (White_wines.csv) dataset
+summary(ww)
+data()
+```
+```{r}
+#load up necessary packages
+library(tidyverse)
+library(car)
+library(stargazer)
+```
+
+```{r}
+# let's add more descriptive stats to our table
+# this means we now have more columns - one per stat
+#for this chunk, I was unable to get the prett descriptives table to work - see error below, but at least I have some descriptive data from the previous step
+#ww %>%
+    #summarise(nQuality = length(quality),
+             #minQuality = min(quality),
+              #meanQuality = mean(quality),
+              #sdQuality = sd(quality),
+              #pct25= quantile(quality, 0.25),
+              #medianQuality = median(quality),
+              #maxQuality = max(quality)) %>%
+   # knitr::kable(col.names=c("N","min",
+                             #"mean","sd","median","max"),
+                 #caption="Quality Rating: Descriptive Stats")
+```
+
+#Developing the model on ~90% of the dataset, then test it on the remaining ~10% of the data. In the datascience world, we call that first step "training" the model. 
+```{r}
+# divide the dataset into a training and a testing set based on a random uniform number on fixed seed - using a diffferent set of subjects to train it than what you are testing it with- use the seed for reproducible results - ww$quality is adding an additonal variable to the temporary files with random numbers
+set.seed(20170214)
+ww$group <- runif(length(ww$quality), min = 0, max = 1)
+summary(ww)
+ww.train <- subset(ww, group <= 0.9)
+ww.test <- subset(ww, group > 0.9)
+
+```
+
+#Univariate Plot for Quality
+```{r}
+library(ggplot2) 
+ww.train %>%
+  ggplot(aes(quality)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=1) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$quality), 
+                              sd = sd(ww.train$quality)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Quality",
+       x = "Quality",
+       y = "Density")
+```
+#Univariate Plot for Fixed Acidity
+```{r}
+ ww.train %>%
+  ggplot(aes(fixed.acidity)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=0.5) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$fixed.acidity), 
+                              sd = sd(ww.train$fixed.acidity)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Fixed Acidity",
+       x = "Fixed Acidity",
+       y = "Density")
+```
+#Univariate Plot for Volatile Acidity
+```{r}
+ ww.train %>%
+  ggplot(aes(volatile.acidity)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=0.1) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$volatile.acidity), 
+                              sd = sd(ww.train$volatile.acidity)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Volatile Acidity",
+       x = "Volatile Acidity",
+       y = "Density")
+```
+#Univariate Plot for Citric Acid
+```{r}
+ww.train %>%
+  ggplot(aes(citric.acid)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=0.1) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$citric.acid), 
+                              sd = sd(ww.train$citric.acid)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Citric Acid",
+       x = "Citric Acid",
+       y = "Density")
+```
+#Univariate Plot for Residual Sugar
+```{r}
+ww.train %>%
+  ggplot(aes(residual.sugar)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=1) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$residual.sugar), 
+                              sd = sd(ww.train$residual.sugar)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Residual Sugar",
+       x = "Residual Sugar",
+       y = "Density")
+```
+#graphing Univariate Plot for Chlorides
+```{r}
+ww.train %>%
+  ggplot(aes(chlorides)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=0.01) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$residual.sugar), 
+                              sd = sd(ww.train$residual.sugar)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Chlorides",
+       x = "Chlorides",
+       y = "Density")
+```
+
+#Univariate Plot for Free Sulfur Dioxide
+```{r}
+ww.train %>%
+  ggplot(aes(free.sulfur.dioxide)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=1) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$free.sulfur.dioxide), 
+                              sd = sd(ww.train$free.sulfur.dioxide)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Free Sulfur Dioxide",
+       x = "Free Sulfur Dioxide",
+       y = "Density")
+```
+#Univariate Plot for Total Sulfur Dioxide
+```{r}
+ww.train %>%
+  ggplot(aes(total.sulfur.dioxide)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=10) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$total.sulfur.dioxide), 
+                              sd = sd(ww.train$total.sulfur.dioxide)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Total Sulfur Dioxide",
+       x = "Total Sulfur Dioxide",
+       y = "Density")
+```
+#graphing Univariate Plot for Density
+```{r}
+ww.train %>%
+  ggplot(aes(density)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=0.1) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$density), 
+                              sd = sd(ww.train$density)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Density",
+       x = "Density Characteristic",
+       y = "Density")
+```
+#Univariate Plot for pH Sugar
+```{r}
+ww.train %>%
+  ggplot(aes(pH)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=0.1) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$pH), 
+                              sd = sd(ww.train$pH)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of pH",
+       x = "pH",
+       y = "Density")
+```
+#Univariate Plot for Sulphates
+```{r}
+ww.train %>%
+  ggplot(aes(sulphates)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=0.1) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$sulphates), 
+                              sd = sd(ww.train$sulphates)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Sulphates",
+       x = "Sulphates",
+       y = "Density")
+```
+#Univariate Plot for Alcohol
+```{r}
+ww.train %>%
+  ggplot(aes(alcohol)) +
+    geom_histogram(aes(y=..density..),
+                   colour="black",fill="yellow",
+                   binwidth=0.5) + 
+    stat_function(fun = dnorm, 
+                  args = list(mean = mean(ww.train$alcohol), 
+                              sd = sd(ww.train$alcohol)), 
+                  lwd = 1, 
+                  col = 'red') +
+  labs(title = "Distribution of Alcohol",
+       x = "Alcohol",
+       y = "Density")
+```
+#Free Sulfer Dioxide against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=fixed.acidity, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on fixed acidity in the training dataset
+reg1 <- lm(quality ~ fixed.acidity, data = ww.train)
+summary(reg1)
+```
+#Scatterplot for volatile acidity against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=volatile.acidity, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on volatile acidity in the training dataset
+reg2 <- lm(quality ~ volatile.acidity, data = ww.train)
+summary(reg2)
+```
+#Scatterplot for citric acid against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=citric.acid, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on citric acid in the training dataset
+reg4 <- lm(quality ~ citric.acid, data = ww.train)
+summary(reg4)
+```
+#Scatterplot for residual sugar against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=residual.sugar, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on residual sugar in the training dataset
+reg5 <- lm(quality ~ residual.sugar, data = ww.train)
+summary(reg5)
+```
+#Scatterplot for chlorides against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=chlorides, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on chlorides in the training dataset
+reg6 <- lm(quality ~ chlorides, data = ww.train)
+summary(reg6)
+```
+#Scatterplot for free sulfer dioxide against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=free.sulfur.dioxide, y=quality)) +
+    geom_point(position = "jitter")
+```
+
+```{r}
+# linear regression of quality on free sulfur dioxide in the training dataset
+reg7 <- lm(quality ~ free.sulfur.dioxide, data = ww.train)
+summary(reg7)
+```
+Scatterplot for total sulfer dioxide against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=total.sulfur.dioxide, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on total sulfur dioxide in the training dataset
+reg8 <- lm(quality ~ total.sulfur.dioxide, data = ww.train)
+summary(reg8)
+```
+Scatterplot for density against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=density, y=quality)) +
+    geom_point(position = "jitter")
+```
+
+```{r}
+# linear regression of quality on density in the training dataset
+reg9 <- lm(quality ~ density, data = ww.train)
+summary(reg9)
+```
+Scatterplot for pH against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=pH, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on pH in the training dataset
+reg10 <- lm(quality ~ pH, data = ww.train)
+summary(reg10)
+```
+Scatterplot for sulphates against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=sulphates, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on sulfates in the training dataset
+reg11 <- lm(quality ~ sulphates, data = ww.train)
+summary(reg11)
+```
+Scatterplot for alcohol against quality for training dataset
+```{r}
+ww.train %>%
+  ggplot(aes(x=alcohol, y=quality)) +
+    geom_point(position = "jitter")
+```
+```{r}
+# linear regression of quality on alcohol in the training dataset
+reg12 <- lm(quality ~ alcohol, data = ww.train)
+summary(reg12)
+```
+
+Creating a scatterplot matrix for the predictor variables
+```{r}
+#produce a scatterplot matrix 
+scatterplotMatrix(~ fixed.acidity + volatile.acidity + citric.acid + residual.sugar + chlorides + free.sulfur.dioxide + total.sulfur.dioxide + density + pH + sulphates, span =0.7, data = ww.train)
+```
+Look at correlations amongst the variables
+```{r}
+cor(ww.train, method = c("pearson"))
+```
+
+#make a correlation matrix with significance values
+```{r}
+library("Hmisc")
+res2 <- rcorr(as.matrix(ww.train))
+res2
+```
+Creating a scatterplot matrix with log2 transformation of residual sugar due to "wonky" plot in scatterplot matrix
+```{r}
+#create a scatterplot matrix 
+scatterplotMatrix(~ fixed.acidity + volatile.acidity + citric.acid + log2(residual.sugar)+1 + chlorides + free.sulfur.dioxide + total.sulfur.dioxide + density + pH + sulphates, span =0.7, data = ww.train)
+```
+Creating a model, looking at the model of the regression for quality on fixed acidity, volatile acidity, residual sugar(logged), chlorides, total sulfur dioxide, density, pH, sulphates, alcohol (This is the full model with all of the potential predictor variables excet for citric acid and free sulfur dioxide which were not statistically significant in the simple linear regressions)
+
+```{r}
+# perform the regression
+ww.mod1 <- lm(quality ~ fixed.acidity + volatile.acidity + log2(residual.sugar) + chlorides + total.sulfur.dioxide + density + pH + sulphates + alcohol, data= ww.train)
+
+#summary of the regression
+summary(ww.mod1)
+```
+Now I am going to look at the model of the regression for quality on volatile acidity, citric acid, residual sugar(logged), free sulfur dioxide,pH, sulphates, alcohol (fixed acidity, chlorides and total sulfur dioxide removed becauise they were not significant in model 1)
+```{r}
+# performing a regression for this more parsimonious model with out fixed acidity, chlorides or total sulfur dioxide
+ww.mod2 <- lm(quality ~ log2(residual.sugar) + density + pH + sulphates + alcohol, data= ww.train)
+
+#summary of the regression
+summary(ww.mod2)
+```
+Comparing Models
+```{r results="asis"}
+library(stargazer)
+# compare the results of three regression models - if you want it to look pretty do type=html when using stargazer
+stargazer(ww.mod1,ww.mod2, title="Comparison of 2 Regression outputs",type="text",align=TRUE)
+```
+When comparing mod1 to mod2, the multiple R2 decreased by .5, but mod2 was more parsimonious and had an larger F statistic than mod1.
+
+Now to do diagnostics for the 2 models:
+
+Looking at residual plots first
+```{r}
+# diagnostics for the model 1
+residualPlots(ww.mod1)
+
+```
+```{r}
+# diagnostics for the model 2
+residualPlots(ww.mod2)
+
+```
+The residual plots llook much better now, as compard to mod1, with the exception of the variable density, but it looks like this is due to a few potential outliers. 
+
+Next I looked at the added variable plots, which shows the additional benefit of variable *i* given that all of the others are in. In this particular plot the most influential observations can also be identified.
+
+```{r}
+#added variable plots
+avPlots(ww.mod1, id.n=2, id.cex=0.7)
+#id.n - identify n most influential observations
+#id.cex - controls the size of the dot
+```
+
+```{r}
+#added variable plots
+avPlots(ww.mod2, id.n=2, id.cex=0.7)
+#id.n - identify n most influential observations
+#id.cex - controls the size of the dot
+```
+Next I ran the qq-plots
+```{r}
+# run the qq-plot
+qqPlot(ww.mod1, id.n=3)
+# here, id.n identifies the n observations with the largest residuals in absolute value
+```
+```{r}
+# run the qq-plot
+qqPlot(ww.mod2, id.n=3)
+# here, id.n identifies the n observations with the largest residuals in absolute value
+```
+Checking for Outliers
+```{r}
+ 
+#run Bonferroni test for outliers
+outlierTest(ww.mod1)
+```
+
+```{r}
+#run Bonferroni test for outliers
+outlierTest(ww.mod1)
+```
+
+Looking for points of high influence
+```{r}
+#identify highly influential points
+influenceIndexPlot(ww.mod1, id.n=3)
+```
+
+```{r}
+#identify highly influential points
+influenceIndexPlot(ww.mod2, id.n=3)
+```
+Now for influence plots.
+```{r}
+#make influence plot
+influencePlot(ww.mod1, id.n=3)
+```
+How do we make heads or tails out of the plots above? One way is with an influence plot.
+```{r}
+#make influence plot
+influencePlot(ww.mod2, id.n=3)
+```
+Because data entry 2782 was found to be an outlier and highly influential, it should be removed.
+
+Next I performed the test for heteroskedasticity (i.e., the variance of the error term is not constant).
+```{r}
+#test for heteroskedasticity
+ncvTest(ww.mod1)
+```
+```{r}
+#test for heteroskedasticity
+ncvTest(ww.mod2)
+```
+mod2 remains superior to mod1, especially after a non-significant test for heteroskidasticity as compared to mod 1. 
+
+Next I looked for multicollinearity to see if some of the independent variables are highly correlated by looking at the Variance Inflation Factor (VIF).
+```{r}
+vif(ww.mod1)
+```
+
+```{r}
+vif(ww.mod2)
+```
+ 
+A GVIF > 4 suggests collinearity. In mod2, which, density has a VIFof 6.795, and will be removed from the model because it is highly correlated with another variable. 
+
+The final model that I am proposing is mod2, but without density, but I need to run mod2 again with and without density to compare.
+
+I should also consider running these models without observation 2782 because it was found to be an outlier and highly influential, but I have run out of time to look that procedure up and perform it for this assignment.
+
+```{r}
+# performing a regression (mod3) without density due to multicollinearity with other variables and the lack of variability in density
+ww.mod3 <- lm(quality ~ log2(residual.sugar) + pH + sulphates + alcohol, data= ww.train)
+
+#summary of the regression
+summary(ww.mod3)
+```
+Comparing mod2 to mod3-which is the model without density
+```{r results="asis"}
+library(stargazer)
+# compare the results of three regression models - if you want it to look pretty do type=html when using stargazer
+stargazer(ww.mod2,ww.mod3, title="Comparison of 2 Regression outputs",type="text",align=TRUE)
+```
+```{r}
+# performing a regression for this more parsimonious model with out fixed acidity, chlorides or total sulfur dioxide
+ww.mod3 <- lm(quality ~ log2(residual.sugar) + pH + sulphates + alcohol, data= ww.train)
+
+#summary of the regression
+summary(ww.mod3)
+```
+Based on these results, the final model I chose is mod3 because it has the higher F statistic, is more parsimonious and not much of the adjusted R2 was sacrificed when density was removed.
+
+The final model is our estimated line is: 
+
+\begin{equation}
+  quality = 0.73 + 0.10*log2(residual sugar) + 0.33pH + 0.48sulphates + 0.35alcohol
+\end{equation}
+
+According to the output from this model (mod2), we see that if the log2 of residual sugar increases by 1 unit, then the wine quality rating will increase by 0.10 units, with pH + sulphates + alcohol held constant. If pH is increased by one unit, then the wine quality rating is expected to increase by 0.33 units, with all other variables held constant. Next, if the variable sulphates is increased by one unit, the wine quality rating is expected to increased by 0.48 units, holding all other variables constant. Lastly, for a one unit rise in alcohol, we expect wine quality to increase by 0.35 units.The multiple R-squared is 0.21, indicating that 22% of the variability in the wine quality rating is due to these three independent variables.
+
+Finally, the F-statistic of 165.4 is for testing the null hypothesis H_0: \beta_1 = \beta_2 = \beta_3 = \beta_4= 0. It is highly significant and we can therefore reject the H_0. 
+
+
+
+Now I will test the chosen model (mod3) on the white wines test dataset I created (ww.test)
+
+```{r}
+#performing regression on mod3
+ww.mod3test <- lm(quality ~ log2(residual.sugar) + pH + sulphates + alcohol, data= ww.test)
+
+#summary of the regression
+summary(ww.mod3test)
+```
+The model didn't do too bad as far as the multiple R-squared.
